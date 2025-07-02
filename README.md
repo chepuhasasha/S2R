@@ -13,7 +13,7 @@ This project converts a sketch into a photorealistic render using Stable Diffusi
 2. Обновите `pip` и поочередно установите зависимости:
    ```cmd
    python -m pip install --upgrade pip
-   pip install torch==2.5.1+cu121 torchvision==0.19.1+cu121 xformers==0.0.31 --extra-index-url https://download.pytorch.org/whl/cu121
+   pip install torch==2.5.1+cu121 torchvision==0.20.1+cu121 xformers==0.0.31 --extra-index-url https://download.pytorch.org/whl/cu121
    pip install diffusers==0.34.0 transformers==4.45.2 accelerate==0.34.0 peft==0.15.2 huggingface-hub==0.33.1 safetensors==0.4.5
    pip install numpy==1.26.4 opencv-python==4.11.0.86 pillow==10.4.0 tqdm==4.67.0
    ```
