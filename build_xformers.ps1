@@ -39,6 +39,11 @@ if (-not (Get-Command nvcc -ErrorAction SilentlyContinue)) {
     throw "nvcc not found. Install CUDA Toolkit 12.8"
 }
 
+# CUDA_HOME may be unset; fall back to CUDA_PATH
+if (-not $env:CUDA_HOME -and $env:CUDA_PATH) {
+    $env:CUDA_HOME = $env:CUDA_PATH
+}
+
 # Ensure script runs from repository root
 Set-Location $PSScriptRoot
 
@@ -55,7 +60,7 @@ python -m pip install --upgrade ninja
 
 if (-not (Test-Path 'xformers')) {
     Write-Host "Cloning xformers 0.0.31..."
-    git clone --branch v0.0.31 --recursive https://github.com/facebookresearch/xformers.git
+    git -c core.longpaths=true clone --branch v0.0.31 --recursive https://github.com/facebookresearch/xformers.git
 }
 
 Push-Location xformers
