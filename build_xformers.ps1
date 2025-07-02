@@ -64,15 +64,8 @@ Write-Host "TORCH_CUDA_ARCH_LIST set to $arch"
 Write-Host "Installing build dependencies..."
 python -m pip install --upgrade ninja
 
-if (-not (Test-Path 'xformers')) {
-    Write-Host "Cloning xformers 0.0.31..."
-    git -c core.longpaths=true clone --branch v0.0.31 --recursive https://github.com/facebookresearch/xformers.git
-}
-
-Push-Location xformers
-Write-Host "Building xformers (this may take a while)..."
-python -m pip install -e .
-Pop-Location
+Write-Host "Building xformers from source (this may take a while)..."
+python -m pip install -v --no-build-isolation -U git+https://github.com/facebookresearch/xformers.git@v0.0.31#egg=xformers
 
 Write-Host "Verifying installation..."
 python -m xformers.info
