@@ -16,20 +16,14 @@ if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
 }
 
 # check python version
-$pyVer = python - <<'PY'
-import sys
-print(f"{sys.version_info.major}.{sys.version_info.minor}")
-PY
+$pyVer = python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"
 if ([Version]$pyVer -lt [Version]'3.10') {
     throw "Python 3.10 or newer is required"
 }
 
 # verify PyTorch and CUDA
 try {
-    $torchCuda = python - <<'PY'
-import torch
-print('1' if torch.cuda.is_available() else '0')
-PY
+    $torchCuda = python -c "import torch; print('1' if torch.cuda.is_available() else '0')"
 } catch {
     throw "PyTorch is not installed in the current environment"
 }
@@ -49,11 +43,7 @@ if (-not (Get-Command nvcc -ErrorAction SilentlyContinue)) {
 Set-Location $PSScriptRoot
 
 Write-Host "Detecting CUDA architecture via PyTorch..."
-$arch = python - <<'PY'
-import torch
-cap = torch.cuda.get_device_capability()
-print(f"{cap[0]}.{cap[1]}")
-PY
+$arch = python -c "import torch; cap = torch.cuda.get_device_capability(); print(f'{cap[0]}.{cap[1]}')"
 if (-not $arch) {
     throw "Could not determine CUDA architecture"
 }
