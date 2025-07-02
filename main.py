@@ -74,6 +74,11 @@ def main():
     ap.add_argument("--prompt", required=True, help="текстовый промпт")
     args = ap.parse_args()
 
+    if not torch.cuda.is_available():
+        raise SystemError(
+            "CUDA device not found. Install appropriate NVIDIA drivers and CUDA 12.1."
+        )
+
     init_img  = preprocess(args.input)
     dbg(init_img,  "preprocessed.png")
 
