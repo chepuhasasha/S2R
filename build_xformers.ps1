@@ -39,9 +39,15 @@ if (-not (Get-Command nvcc -ErrorAction SilentlyContinue)) {
     throw "nvcc not found. Install CUDA Toolkit 12.8"
 }
 
-# CUDA_HOME may be unset; fall back to CUDA_PATH
-if (-not $env:CUDA_HOME -and $env:CUDA_PATH) {
-    $env:CUDA_HOME = $env:CUDA_PATH
+# Ensure CUDA_HOME is defined. Try CUDA_PATH or default install location.
+if (-not $env:CUDA_HOME) {
+    if ($env:CUDA_PATH) {
+        $env:CUDA_HOME = $env:CUDA_PATH
+    } elseif (Test-Path 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8') {
+        $env:CUDA_HOME = 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8'
+    } else {
+        throw 'CUDA_HOME environment variable is not set. Please set it to your CUDA install root.'
+    }
 }
 
 # Ensure script runs from repository root
