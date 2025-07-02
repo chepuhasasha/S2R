@@ -1,4 +1,4 @@
-# main.py  —  проверено 02-Jul-2025, diffusers 0.34.0, torch 2.7.1+cu121
+# main.py  —  проверено 02-Jul-2025, diffusers 0.34.0, torch 2.7.1
 
 from pathlib import Path
 import argparse, torch, cv2, numpy as np
