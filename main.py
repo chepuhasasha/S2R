@@ -5,14 +5,14 @@ import argparse, torch, cv2, numpy as np
 from PIL import Image, ImageOps
 from diffusers import (
     StableDiffusionXLControlNetPipeline,
-    StableDiffusionXLRefinerPipeline,
+    StableDiffusionXLImg2ImgPipeline,
     ControlNetModel,
     EulerAncestralDiscreteScheduler,
 )
 
 MODEL_PATH      = "./models/stable-diffusion-xl-base-1.0"
 CONTROLNET_PATH = "./models/controlnet-canny-sdxl-1.0"   # 2.1 GB fp16
-REFINER_PATH   = "./models/stable-diffusion-xl-refiner-1.0"
+REFINER_PATH   = "stabilityai/stable-diffusion-xl-refiner-1.0"
 SIZE            = 1024
 CANNY_LOW       = 20
 CANNY_HIGH      = 100
@@ -86,7 +86,7 @@ def load_pipeline(dtype=torch.float16):
     base.vae.enable_tiling()
 
     # SDXL refiner pipeline for final quality pass
-    refiner = StableDiffusionXLRefinerPipeline.from_pretrained(
+    refiner = StableDiffusionXLImg2ImgPipeline.from_pretrained(
         REFINER_PATH,
         torch_dtype=dtype,
     )
