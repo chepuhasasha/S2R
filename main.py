@@ -11,11 +11,12 @@ from diffusers import (
 
 MODEL_PATH      = "./models/stable-diffusion-xl-base-1.0"
 CONTROLNET_PATH = "./models/controlnet-canny-sdxl-1.0"   # 2.1 GB fp16
-SIZE            = 512
-CANNY_LOW       = 5
-CANNY_HIGH      = 160
-STEPS           = 30
+SIZE            = 1024
+CANNY_LOW       = 20
+CANNY_HIGH      = 100
+STEPS           = 50
 GUIDANCE        = 8.0
+CONDITIONING    = 0.9
 DEBUG_DIR       = "debug"          # "debug" чтобы сохранять промежуточные картинки
 
 def get_free_gpu_memory_gb(device: int = 0) -> float:
@@ -43,14 +44,16 @@ def preprocess(path: str) -> Image.Image:
     w, h = img.size
     if max(w, h) > SIZE:
         s = SIZE / max(w, h)
-        img = img.resize((round(w * s), round(h * s)), Image.Resampling.NEAREST)
+        img = img.resize((round(w * s), round(h * s)), Image.Resampling.LANCZOS)
     pad_w = (SIZE - img.width) // 2
     pad_h = (SIZE - img.height) // 2
-    return ImageOps.expand(
+    img = ImageOps.expand(
         img,
         border=(pad_w, pad_h, SIZE - img.width - pad_w, SIZE - img.height - pad_h),
         fill="white",
     )
+    img = ImageOps.autocontrast(img)
+    return img
 
 def canny(img: Image.Image) -> Image.Image:
     g = cv2.cvtColor(np.asarray(img), cv2.COLOR_RGB2GRAY)
@@ -106,17 +109,18 @@ def main():
         pipe.to('cuda')
 
     else:
-        print(f"Not enough memory: {size - free_mem} GB")
+        print(f"Not enough memory: {size - free_mem} GB. Enable sequential cpu offload...")
         print(f"VRAM neaded: {size} GB")
         print(f"Free GPU VRAM: {free_mem} GB")
-        pipe.enable_model_cpu_offload() 
-        # pipe.enable_sequential_cpu_offload() 
+        pipe.enable_sequential_cpu_offload() 
 
     result = pipe(
         prompt=args.prompt,
+        image=init_img,
         control_image=edge_img,
         num_inference_steps=STEPS,
         guidance_scale=GUIDANCE,
+        controlnet_conditioning_scale=CONDITIONING
     ).images[0]
 
     result.save(args.output)

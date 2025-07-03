@@ -49,6 +49,6 @@
 
 ## Запуск
 ```cmd
-python main.py --input scetch.png --output result.png --prompt "ultra-realistic minimalistic modern house, evening golden hour lighting, photoreal, 8k, octane render"
+python main.py --input scetch.png --output result.png --prompt "ultra-realistic minimalistic modern house, white concrete, large glass walls, clean smooth surfaces, evening golden hour lighting, photorealistic rendering, sharp lines, open plan, panoramic windows, architectural visualization, 8k, lawn, realistic grass, octane render, soft natural shadows, exterior, no people, no watermark, no text, high detail, crisp, elegant, beautiful"
 ```
 Входной скетч используется только для получения карты Canny.
