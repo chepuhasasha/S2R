@@ -5,18 +5,22 @@ import argparse, torch, cv2, numpy as np
 from PIL import Image, ImageOps
 from diffusers import (
     StableDiffusionXLControlNetPipeline,
+    StableDiffusionXLRefinerPipeline,
     ControlNetModel,
     EulerAncestralDiscreteScheduler,
 )
 
 MODEL_PATH      = "./models/stable-diffusion-xl-base-1.0"
 CONTROLNET_PATH = "./models/controlnet-canny-sdxl-1.0"   # 2.1 GB fp16
+REFINER_PATH   = "./models/stable-diffusion-xl-refiner-1.0"
 SIZE            = 1024
 CANNY_LOW       = 20
 CANNY_HIGH      = 100
 STEPS           = 50
 GUIDANCE        = 8.0
 CONDITIONING    = 0.9
+REFINER_STEPS   = 20
+REFINER_START   = 0.8
 DEBUG_DIR       = "debug"          # "debug" чтобы сохранять промежуточные картинки
 
 def get_free_gpu_memory_gb(device: int = 0) -> float:
@@ -60,6 +64,11 @@ def canny(img: Image.Image) -> Image.Image:
     e = cv2.Canny(g, CANNY_LOW, CANNY_HIGH)
     return Image.fromarray(cv2.cvtColor(e, cv2.COLOR_GRAY2RGB))
 
+def denoise(img: Image.Image) -> Image.Image:
+    bgr = cv2.cvtColor(np.asarray(img), cv2.COLOR_RGB2BGR)
+    denoised = cv2.fastNlMeansDenoisingColored(bgr, None, 10, 10, 7, 21)
+    return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
+
 def load_pipeline(dtype=torch.float16):
     # ControlNet
     controlnet = ControlNetModel.from_pretrained(
@@ -67,21 +76,32 @@ def load_pipeline(dtype=torch.float16):
     )
 
     # SDXL text-to-image pipeline
-    pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
+    base = StableDiffusionXLControlNetPipeline.from_pretrained(
         MODEL_PATH,
         controlnet=controlnet,
         torch_dtype=dtype,
     )
-    pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
+    base.scheduler = EulerAncestralDiscreteScheduler.from_config(base.scheduler.config)
+    base.enable_attention_slicing()
+    base.vae.enable_tiling()
+
+    # SDXL refiner pipeline for final quality pass
+    refiner = StableDiffusionXLRefinerPipeline.from_pretrained(
+        REFINER_PATH,
+        torch_dtype=dtype,
+    )
+    refiner.scheduler = EulerAncestralDiscreteScheduler.from_config(refiner.scheduler.config)
+    refiner.enable_attention_slicing()
+    refiner.vae.enable_tiling()
+
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.benchmark = True
     if hasattr(torch.backends.cuda, "enable_flash_sdp"):
         torch.backends.cuda.enable_flash_sdp(True)
     if hasattr(torch.backends.cuda, "enable_mem_efficient_sdp"):
         torch.backends.cuda.enable_mem_efficient_sdp(True)
-    pipe.enable_attention_slicing()
-    pipe.vae.enable_tiling()
-    return pipe
+
+    return base, refiner
 
 def main():
     ap = argparse.ArgumentParser()
@@ -101,20 +121,22 @@ def main():
     edge_img  = canny(init_img)
     dbg(edge_img, "canny.png")
 
-    pipe = load_pipeline()
-    size = sizeof_pipe(pipe)
+    base, refiner = load_pipeline()
+    size = sizeof_pipe(base) + sizeof_pipe(refiner)
     free_mem = get_free_gpu_memory_gb()
 
     if free_mem > size:
-        pipe.to('cuda')
+        base.to('cuda')
+        refiner.to('cuda')
 
     else:
         print(f"Not enough memory: {size - free_mem} GB. Enable sequential cpu offload...")
         print(f"VRAM neaded: {size} GB")
         print(f"Free GPU VRAM: {free_mem} GB")
-        pipe.enable_sequential_cpu_offload() 
+        base.enable_sequential_cpu_offload()
+        refiner.enable_sequential_cpu_offload()
 
-    result = pipe(
+    result = base(
         prompt=args.prompt,
         image=init_img,
         control_image=edge_img,
@@ -122,7 +144,16 @@ def main():
         guidance_scale=GUIDANCE,
         controlnet_conditioning_scale=CONDITIONING
     ).images[0]
+    dbg(result, "base.png")
 
+    result = refiner(
+        prompt=args.prompt,
+        image=result,
+        num_inference_steps=REFINER_STEPS,
+        denoising_start=REFINER_START,
+    ).images[0]
+    result = denoise(result)
+    dbg(result, "denoised.png")
     result.save(args.output)
 
 if __name__ == "__main__":

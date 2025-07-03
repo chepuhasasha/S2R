@@ -45,7 +45,7 @@
    pip check
    pip freeze > requirements.lock
    ```
-6. Скачайте модели `stable-diffusion-xl-base-1.0` и `controlnet-canny-sdxl-1.0` из Hugging Face и разместите их в каталоге `models/`.
+6. Скачайте модели `stable-diffusion-xl-base-1.0`, `controlnet-canny-sdxl-1.0` и `stable-diffusion-xl-refiner-1.0` из Hugging Face и разместите их в каталоге `models/`.
 
 ## Запуск
 ```cmd
