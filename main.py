@@ -14,10 +14,25 @@ CONTROLNET_PATH = "./models/controlnet-canny-sdxl-1.0"   # 2.1 GB fp16
 SIZE            = 1024
 CANNY_LOW       = 5
 CANNY_HIGH      = 160
-STEPS           = 50
+STEPS           = 30
 STRENGTH        = 0.80
 GUIDANCE        = 8.0
-DEBUG_DIR       = None          # "debug" чтобы сохранять промежуточные картинки
+DEBUG_DIR       = "debug"          # "debug" чтобы сохранять промежуточные картинки
+
+def get_free_gpu_memory_gb(device: int = 0) -> float:
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA device not found.")
+    free_bytes, _ = torch.cuda.mem_get_info(device)
+    return free_bytes / (1024 ** 3)
+
+def sizeof_pipe(pipe) -> float:
+    modules = []
+    for name in ['unet', 'controlnet', 'vae', 'text_encoder', 'text_encoder_2']:
+        if hasattr(pipe, name):
+            modules.append(getattr(pipe, name))
+    total_params = sum(p.numel() for m in modules for p in m.parameters())
+    return total_params * 2 / (1024 ** 3)  # FP16 = 2 bytes per parameter
+
 
 def dbg(img: Image.Image, name: str):
     if DEBUG_DIR:
@@ -55,7 +70,6 @@ def load_pipeline(dtype=torch.float16):
         controlnet=controlnet,
         torch_dtype=dtype,
     )
-
     pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.benchmark = True
@@ -65,11 +79,6 @@ def load_pipeline(dtype=torch.float16):
         torch.backends.cuda.enable_mem_efficient_sdp(True)
     pipe.enable_attention_slicing()
     pipe.vae.enable_tiling()
-
-    # вручную переносим тяжёлые блоки в GPU, остальное оставляем на CPU
-    pipe.unet.to("cuda")
-    pipe.controlnet.to("cuda")
-
     return pipe
 
 def main():
@@ -91,17 +100,25 @@ def main():
     dbg(edge_img, "canny.png")
 
     pipe = load_pipeline()
+    size = sizeof_pipe(pipe)
+    free_mem = get_free_gpu_memory_gb()
 
-    result = pipe(
-        prompt=args.prompt,
-        image=init_img,
-        control_image=edge_img,
-        num_inference_steps=STEPS,
-        strength=STRENGTH,
-        guidance_scale=GUIDANCE,
-    ).images[0]
+    if free_mem > size:
+        result = pipe(
+            prompt=args.prompt,
+            image=init_img,
+            control_image=edge_img,
+            num_inference_steps=STEPS,
+            strength=STRENGTH,
+            guidance_scale=GUIDANCE,
+        ).images[0]
 
-    result.save(args.output)
+        result.save(args.output)
+    else:
+        print(f"Not enough memory: {size - free_mem} GB")
+        print(f"VRAM neaded: {size} GB")
+        print(f"Free GPU VRAM: {free_mem} GB")
+
 
 if __name__ == "__main__":
     main()
