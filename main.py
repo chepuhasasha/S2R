@@ -57,7 +57,12 @@ def load_pipeline(dtype=torch.float16):
     )
 
     pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
-    pipe.enable_xformers_memory_efficient_attention()
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.benchmark = True
+    if hasattr(torch.backends.cuda, "enable_flash_sdp"):
+        torch.backends.cuda.enable_flash_sdp(True)
+    if hasattr(torch.backends.cuda, "enable_mem_efficient_sdp"):
+        torch.backends.cuda.enable_mem_efficient_sdp(True)
     pipe.enable_attention_slicing()
     pipe.vae.enable_tiling()
 

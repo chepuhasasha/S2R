@@ -1,6 +1,7 @@
 # Renderer
 
 Этот проект преобразует эскиз в фотореалистичный рендер с помощью Stable Diffusion XL и ControlNet.
+Начиная с этой версии библиотека `xformers` больше не требуется: оптимизацию внимания обеспечивают встроенные функции PyTorch (Flash Attention и SDPA).
 
 ## Подготовка окружения (Windows 11, Python 3.10+, CUDA 12.8)
 
@@ -33,23 +34,17 @@
    >```cmd
    >pip install -r requirements.lock
    >```
-4. Сборка и установка xformers:
-   ```powershell
-   Set-ExecutionPolicy RemoteSigned -Scope Process
-   .\build_xformers.ps1
-   ```
-5. Проверки:
+4. Проверки:
    ```cmd
    python -c "import torch; print(torch.__version__)"
    python -c "import torch; print(torch.cuda.is_available())"
-   python -m xformers.info
    ```
-6. Сохраните список установленных пакетов:
+5. Сохраните список установленных пакетов:
    ```cmd
    pip check
    pip freeze > requirements.lock
    ```
-7. Скачайте модели `stable-diffusion-xl-base-1.0` и `controlnet-canny-sdxl-1.0` из Hugging Face и разместите их в каталоге `models/`.
+6. Скачайте модели `stable-diffusion-xl-base-1.0` и `controlnet-canny-sdxl-1.0` из Hugging Face и разместите их в каталоге `models/`.
 
 ## Запуск
 ```cmd
