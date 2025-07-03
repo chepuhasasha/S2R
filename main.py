@@ -8,20 +8,25 @@ from diffusers import (
     StableDiffusionXLImg2ImgPipeline,
     ControlNetModel,
     EulerAncestralDiscreteScheduler,
+    AutoencoderKL
 )
 
 MODEL_PATH      = "./models/stable-diffusion-xl-base-1.0"
-CONTROLNET_PATH = "./models/controlnet-canny-sdxl-1.0"   # 2.1 GB fp16
-REFINER_PATH   = "stabilityai/stable-diffusion-xl-refiner-1.0"
+CONTROLNET_PATH = "./models/controlnet-canny-sdxl-1.0"
+REFINER_PATH    = "./models/stable-diffusion-xl-refiner-1.0"
+VAE_PATH        = "./models/sdxl-vae-fp16-fix"
+
 SIZE            = 1024
-CANNY_LOW       = 20
-CANNY_HIGH      = 100
-STEPS           = 50
+CANNY_LOW       = 100
+CANNY_HIGH      = 200
+STEPS           = 40
 GUIDANCE        = 8.0
 CONDITIONING    = 0.9
-REFINER_STEPS   = 20
+REFINER_STEPS   = 40
 REFINER_START   = 0.8
-DEBUG_DIR       = "debug"          # "debug" чтобы сохранять промежуточные картинки
+NEGATIVE_PROMPT = "pattern, mosaic, grid, texture, noise, dots, pixelated, glitch, artifacts, sky artifacts, lowres, blurry, cartoon, poorly drawn, dirty, ugly, watermark, text, logo, signature, frame, border, cropped, out of frame, duplicate, low quality, bad grass, bad windows, bad architecture, old, ruin, broken, cracks, reflection artifacts, bad lighting, overexposed, underexposed, cluttered, crowded, people, person, face, hands, camera, out of focus"
+
+DEBUG_DIR       = "debug" # "debug" чтобы сохранять промежуточные картинки
 
 def get_free_gpu_memory_gb(device: int = 0) -> float:
     if not torch.cuda.is_available():
@@ -36,7 +41,6 @@ def sizeof_pipe(pipe) -> float:
             modules.append(getattr(pipe, name))
     total_params = sum(p.numel() for m in modules for p in m.parameters())
     return total_params * 2 / (1024 ** 3)  # FP16 = 2 bytes per parameter
-
 
 def dbg(img: Image.Image, name: str):
     if DEBUG_DIR:
@@ -59,26 +63,24 @@ def preprocess(path: str) -> Image.Image:
     img = ImageOps.autocontrast(img)
     return img
 
-def canny(img: Image.Image) -> Image.Image:
-    g = cv2.cvtColor(np.asarray(img), cv2.COLOR_RGB2GRAY)
-    e = cv2.Canny(g, CANNY_LOW, CANNY_HIGH)
-    return Image.fromarray(cv2.cvtColor(e, cv2.COLOR_GRAY2RGB))
-
-def denoise(img: Image.Image) -> Image.Image:
-    bgr = cv2.cvtColor(np.asarray(img), cv2.COLOR_RGB2BGR)
-    denoised = cv2.fastNlMeansDenoisingColored(bgr, None, 10, 10, 7, 21)
-    return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
-
+def canny(image: Image.Image) -> Image.Image:
+    image = np.array(image)
+    image = cv2.Canny(image, CANNY_LOW, CANNY_HIGH)
+    image = image[:, :, None]
+    image = np.concatenate([image, image, image], axis=2)
+    return Image.fromarray(image)
+    
 def load_pipeline(dtype=torch.float16):
     # ControlNet
     controlnet = ControlNetModel.from_pretrained(
         CONTROLNET_PATH, torch_dtype=dtype, variant="fp16"
     )
-
+    vae = AutoencoderKL.from_pretrained(VAE_PATH, torch_dtype=torch.float16)
     # SDXL text-to-image pipeline
     base = StableDiffusionXLControlNetPipeline.from_pretrained(
         MODEL_PATH,
         controlnet=controlnet,
+        vae=vae,
         torch_dtype=dtype,
     )
     base.scheduler = EulerAncestralDiscreteScheduler.from_config(base.scheduler.config)
@@ -122,7 +124,7 @@ def main():
     dbg(edge_img, "canny.png")
 
     base, refiner = load_pipeline()
-    size = sizeof_pipe(base) + sizeof_pipe(refiner)
+    size = sizeof_pipe(base) 
     free_mem = get_free_gpu_memory_gb()
 
     if free_mem > size:
@@ -142,7 +144,8 @@ def main():
         control_image=edge_img,
         num_inference_steps=STEPS,
         guidance_scale=GUIDANCE,
-        controlnet_conditioning_scale=CONDITIONING
+        controlnet_conditioning_scale=CONDITIONING,
+        negative_prompt=NEGATIVE_PROMPT
     ).images[0]
     dbg(result, "base.png")
 
@@ -151,9 +154,8 @@ def main():
         image=result,
         num_inference_steps=REFINER_STEPS,
         denoising_start=REFINER_START,
+        negative_prompt=NEGATIVE_PROMPT
     ).images[0]
-    result = denoise(result)
-    dbg(result, "denoised.png")
     result.save(args.output)
 
 if __name__ == "__main__":
