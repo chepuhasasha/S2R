@@ -4,7 +4,7 @@ from pathlib import Path
 import argparse, torch, cv2, numpy as np
 from PIL import Image, ImageOps
 from diffusers import (
-    StableDiffusionXLControlNetImg2ImgPipeline,
+    StableDiffusionXLControlNetPipeline,
     ControlNetModel,
     EulerAncestralDiscreteScheduler,
 )
@@ -15,7 +15,6 @@ SIZE            = 1024
 CANNY_LOW       = 5
 CANNY_HIGH      = 160
 STEPS           = 30
-STRENGTH        = 0.80
 GUIDANCE        = 8.0
 DEBUG_DIR       = "debug"          # "debug" чтобы сохранять промежуточные картинки
 
@@ -64,8 +63,8 @@ def load_pipeline(dtype=torch.float16):
         CONTROLNET_PATH, torch_dtype=dtype, variant="fp16"
     )
 
-    # SDXL-pipeline целиком на CPU
-    pipe = StableDiffusionXLControlNetImg2ImgPipeline.from_pretrained(
+    # SDXL text-to-image pipeline
+    pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
         MODEL_PATH,
         controlnet=controlnet,
         torch_dtype=dtype,
@@ -106,10 +105,8 @@ def main():
     if free_mem > size:
         result = pipe(
             prompt=args.prompt,
-            image=init_img,
             control_image=edge_img,
             num_inference_steps=STEPS,
-            strength=STRENGTH,
             guidance_scale=GUIDANCE,
         ).images[0]
 

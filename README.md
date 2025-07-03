@@ -1,6 +1,8 @@
 # Renderer
 
 Этот проект преобразует эскиз в фотореалистичный рендер с помощью Stable Diffusion XL и ControlNet.
+Используется режим text-to-image: исходное изображение нужно только для получения карты Canny,
+которую затем подаём в ControlNet.
 Оптимизацию внимания обеспечивают встроенные функции PyTorch (Flash Attention и SDPA).
 
 ## Подготовка окружения (Windows 11, Python 3.10+, CUDA 12.8)
@@ -49,3 +51,4 @@
 ```cmd
 python main.py --input scetch.png --output result.png --prompt "ultra-realistic minimalistic modern house, evening golden hour lighting, photoreal, 8k, octane render"
 ```
+Входной скетч используется только для получения карты Canny.
