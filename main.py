@@ -11,7 +11,7 @@ from diffusers import (
 
 MODEL_PATH      = "./models/stable-diffusion-xl-base-1.0"
 CONTROLNET_PATH = "./models/controlnet-canny-sdxl-1.0"   # 2.1 GB fp16
-SIZE            = 1024
+SIZE            = 512
 CANNY_LOW       = 5
 CANNY_HIGH      = 160
 STEPS           = 30
@@ -103,19 +103,23 @@ def main():
     free_mem = get_free_gpu_memory_gb()
 
     if free_mem > size:
-        result = pipe(
-            prompt=args.prompt,
-            control_image=edge_img,
-            num_inference_steps=STEPS,
-            guidance_scale=GUIDANCE,
-        ).images[0]
+        pipe.to('cuda')
 
-        result.save(args.output)
     else:
         print(f"Not enough memory: {size - free_mem} GB")
         print(f"VRAM neaded: {size} GB")
         print(f"Free GPU VRAM: {free_mem} GB")
+        pipe.enable_model_cpu_offload() 
+        # pipe.enable_sequential_cpu_offload() 
 
+    result = pipe(
+        prompt=args.prompt,
+        control_image=edge_img,
+        num_inference_steps=STEPS,
+        guidance_scale=GUIDANCE,
+    ).images[0]
+
+    result.save(args.output)
 
 if __name__ == "__main__":
     main()
