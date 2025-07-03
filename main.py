@@ -1,6 +1,7 @@
 # main.py  —  проверено 02-Jul-2025, diffusers 0.34.0, torch 2.7.1+cu121
 
 from pathlib import Path
+from datetime import datetime
 import argparse, torch, cv2, numpy as np
 from PIL import Image, ImageOps
 from diffusers import (
@@ -26,7 +27,15 @@ REFINER_STEPS   = 40
 REFINER_START   = 0.8
 NEGATIVE_PROMPT = "pattern, mosaic, grid, texture, noise, dots, pixelated, glitch, artifacts, sky artifacts, lowres, blurry, cartoon, poorly drawn, dirty, ugly, watermark, text, logo, signature, frame, border, cropped, out of frame, duplicate, low quality, bad grass, bad windows, bad architecture, old, ruin, broken, cracks, reflection artifacts, bad lighting, overexposed, underexposed, cluttered, crowded, people, person, face, hands, camera, out of focus"
 
-DEBUG_DIR       = "debug" # "debug" чтобы сохранять промежуточные картинки
+DEBUG_DIR       = None  # путь к каталогу, где сохраняются промежуточные картинки
+
+
+def create_output_dir(base: str = "runs") -> Path:
+    """Return a unique directory for all output images."""
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_dir = Path(base) / ts
+    out_dir.mkdir(parents=True, exist_ok=False)
+    return out_dir
 
 def get_free_gpu_memory_gb(device: int = 0) -> float:
     if not torch.cuda.is_available():
@@ -107,10 +116,13 @@ def load_pipeline(dtype=torch.float16):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--input",  required=True, help="скетч PNG/JPG")
-    ap.add_argument("--output", required=True, help="PNG-файл рендера")
+    ap.add_argument("--input", required=True, help="скетч PNG/JPG")
     ap.add_argument("--prompt", required=True, help="текстовый промпт")
     args = ap.parse_args()
+
+    out_dir = create_output_dir()
+    global DEBUG_DIR
+    DEBUG_DIR = out_dir
 
     if not torch.cuda.is_available():
         raise SystemError(
@@ -156,7 +168,7 @@ def main():
         denoising_start=REFINER_START,
         negative_prompt=NEGATIVE_PROMPT
     ).images[0]
-    result.save(args.output)
+    result.save(out_dir / "result.png")
 
 if __name__ == "__main__":
     main()
