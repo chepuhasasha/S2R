@@ -1,11 +1,10 @@
-# main.py  —  проверено 02-Jul-2025, diffusers 0.34.0, torch 2.7.1+cu121
-
 from pathlib import Path
 from datetime import datetime
 import argparse, shutil
 import torch, cv2, numpy as np
 from PIL import Image, ImageOps
 import yaml
+
 from diffusers import (
     StableDiffusionXLControlNetPipeline,
     StableDiffusionXLImg2ImgPipeline,
@@ -13,9 +12,6 @@ from diffusers import (
     EulerAncestralDiscreteScheduler,
     AutoencoderKL
 )
-
-
-
 
 def load_config(path: str) -> dict:
     """Load YAML configuration."""
