@@ -27,8 +27,6 @@ REFINER_STEPS   = 40
 REFINER_START   = 0.8
 NEGATIVE_PROMPT = "pattern, mosaic, grid, texture, noise, dots, pixelated, glitch, artifacts, sky artifacts, lowres, blurry, cartoon, poorly drawn, dirty, ugly, watermark, text, logo, signature, frame, border, cropped, out of frame, duplicate, low quality, bad grass, bad windows, bad architecture, old, ruin, broken, cracks, reflection artifacts, bad lighting, overexposed, underexposed, cluttered, crowded, people, person, face, hands, camera, out of focus"
 
-DEBUG_DIR       = None  # путь к каталогу, где сохраняются промежуточные картинки
-
 
 def create_output_dir(base: str = "runs") -> Path:
     """Return a unique directory for all output images."""
@@ -51,10 +49,10 @@ def sizeof_pipe(pipe) -> float:
     total_params = sum(p.numel() for m in modules for p in m.parameters())
     return total_params * 2 / (1024 ** 3)  # FP16 = 2 bytes per parameter
 
-def dbg(img: Image.Image, name: str):
-    if DEBUG_DIR:
-        Path(DEBUG_DIR).mkdir(exist_ok=True)
-        img.save(Path(DEBUG_DIR) / name)
+def dbg(img: Image.Image, name: str, out_dir: Path):
+    """Save intermediate image to the output directory."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    img.save(out_dir / name)
 
 def preprocess(path: str) -> Image.Image:
     img = Image.open(path).convert("RGB")
@@ -121,8 +119,6 @@ def main():
     args = ap.parse_args()
 
     out_dir = create_output_dir()
-    global DEBUG_DIR
-    DEBUG_DIR = out_dir
 
     if not torch.cuda.is_available():
         raise SystemError(
@@ -130,10 +126,10 @@ def main():
         )
 
     init_img  = preprocess(args.input)
-    dbg(init_img,  "preprocessed.png")
+    dbg(init_img,  "preprocessed.png", out_dir)
 
     edge_img  = canny(init_img)
-    dbg(edge_img, "canny.png")
+    dbg(edge_img, "canny.png", out_dir)
 
     base, refiner = load_pipeline()
     size = sizeof_pipe(base) 
@@ -159,7 +155,7 @@ def main():
         controlnet_conditioning_scale=CONDITIONING,
         negative_prompt=NEGATIVE_PROMPT
     ).images[0]
-    dbg(result, "base.png")
+    dbg(result, "base.png", out_dir)
 
     result = refiner(
         prompt=args.prompt,
