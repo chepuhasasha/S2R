@@ -22,8 +22,8 @@ preprocess_size: 1024
 canny:
   low: 100
   high: 200
-controlnet_conditioning_scale: 1.0
-num_inference_steps: 60
+controlnet_conditioning_scale: 0.9
+num_inference_steps: 40
 guidance_scale: 7.5
 input: "input.png"
 debug_dir: "debug"
