@@ -115,11 +115,9 @@ def main() -> None:
     )
 
     preprocessed = preprocess("scetch.png", 1024)
-    # Uncomment to debug preprocessing
     save_debug(preprocessed, "preprocess.png")
 
     edged = canny(preprocessed, 100, 200)
-    # Uncomment to debug edges
     save_debug(edged, "canny.png")
 
     result = pipe(
