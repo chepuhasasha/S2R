@@ -1,4 +1,8 @@
-# Scetch to Renderer
+# Sketch to Renderer
+
+Небольшой проект для генерации финального изображения по эскизу при помощи
+Stable Diffusion ControlNet. Исходный код организован в пакете `renderer`,
+а скрипт `generate.py` предоставляет CLI для запуска.
 
 ## Подготовка окружения (Windows 11, Python 3.10+, CUDA 12.8)
 
@@ -44,6 +48,19 @@
    При необходимости можно подключить дополнительные LoRA адаптеры. Их
    пути и параметры указываются в файле `config.yaml`.
 
+### Рекомендуемые модели
+1. **Базовая** — `SG161222/Realistic_Vision_V6.0_B1_noVAE`
+2. **ControlNet** — `lllyasviel/control_v11p_sd15_canny`
+3. **VAE** — `stabilityai/sd-vae-ft-ema`
+
+Модели можно загрузить через `huggingface-cli`:
+```bash
+huggingface-cli download SG161222/Realistic_Vision_V6.0_B1_noVAE --local-dir models/Realistic_Vision_V6.0_B1_noVAE
+huggingface-cli download lllyasviel/control_v11p_sd15_canny --local-dir models/control_v11p_sd15_canny
+huggingface-cli download stabilityai/sd-vae-ft-ema --local-dir models/sd-vae-ft-ema
+```
+После загрузки укажите пути в `config.yaml` либо используйте оригинальные ссылки на Hugging Face.
+
 Все параметры генерации задаются в файле `config.yaml`.
 
 ### Конфигурация
@@ -75,7 +92,7 @@ python generate.py --help
 
 Базовый пример:
 ```cmd
-python generate.py --input scetch.png --prompt "<ваш промпт>"
+python generate.py --input sketch.png --prompt "<ваш промпт>"
 ```
 
 Можно переопределить любой параметр конфигурации через CLI:
