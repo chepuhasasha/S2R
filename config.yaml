@@ -24,3 +24,7 @@ guidance_scale: 7.5
 input: "scetch.png"
 output: "output.png"
 debug_dir: "debug"
+upscaler:
+  enabled: false
+  model_path: "models/4x-nmkd-superscale.pth"
+  tile: 0

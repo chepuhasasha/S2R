@@ -17,6 +17,42 @@ from diffusers import (
 )
 
 
+def load_upscaler(cfg: dict):
+    """Load RealESRGAN upscaler if enabled."""
+    up_cfg = cfg.get("upscaler", {})
+    if not up_cfg.get("enabled", False):
+        return None
+    try:
+        from realesrgan import RealESRGANer
+        from realesrgan.archs.srvgg_arch import SRVGGNetCompact
+    except Exception as e:
+        print(f"Upscaler unavailable: {e}")
+        return None
+    model_path = up_cfg.get("model_path", "models/4x-nmkd-superscale.pth")
+    model = SRVGGNetCompact(
+        num_in_ch=3, num_out_ch=3, num_feat=64, num_conv=32, upscale=4
+    )
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    tile = int(up_cfg.get("tile", 0))
+    return RealESRGANer(
+        scale=4,
+        model_path=model_path,
+        model=model,
+        tile=tile,
+        tile_pad=10,
+        pre_pad=0,
+        half=device.type == "cuda",
+        device=device,
+    )
+
+
+def upscale_image(img: Image.Image, upsampler) -> Image.Image:
+    """Upscale an image using the provided upsampler."""
+    arr = np.array(img)
+    out, _ = upsampler.enhance(arr)
+    return Image.fromarray(out)
+
+
 def load_config(path: str = "config.yaml") -> dict:
     """Load generation settings from a YAML file."""
     with open(path, "r", encoding="utf-8") as f:
@@ -140,6 +176,10 @@ def main() -> None:
         num_inference_steps=cfg.get("num_inference_steps", 20),
         guidance_scale=cfg.get("guidance_scale", 7.5),
     ).images[0]
+
+    upsampler = load_upscaler(cfg)
+    if upsampler is not None:
+        result = upscale_image(result, upsampler)
 
     result.save(cfg.get("output", "output.png"))
 

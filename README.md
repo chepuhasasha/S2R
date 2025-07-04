@@ -41,6 +41,8 @@
    pip freeze > requirements.lock
    ```
 6. Скачайте модели `SG161222/Realistic_Vision_V6.0_B1_noVAE`, `lllyasviel/control_v11p_sd15_canny` и `stabilityai/sd-vae-ft-ema` из Hugging Face и разместите их в каталоге `models/`.
+7. При необходимости увеличения разрешения установите пакет `realesrgan` и скачайте веса upscaler, например файл `4x-nmkd-superscale.pth` с сайта [Civitai](https://civitai.com/models/141491/4x-nmkd-superscale?modelVersionId=156841). Разместите его в каталоге `models/` и укажите путь в параметре `upscaler.model_path`.
+   Для активации увеличения разрешения установите `upscaler.enabled: true` в `config.yaml`.
 
 Все параметры генерации задаются в файле `config.yaml`.
 
