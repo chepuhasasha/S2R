@@ -84,4 +84,8 @@ python generate.py --config config.yaml --input input.png \
     --prompt "modern house" --output result.png
 ```
 
+При запуске без явного указания путей `--output` и `--debug-dir` скрипт
+создаст каталог `runs/YYYYMMDD_HHMMSS`, где будут сохранены сгенерированное
+изображение (`output.png`) и все отладочные изображения.
+
 CLI использует `config.yaml` как источник значений по умолчанию.

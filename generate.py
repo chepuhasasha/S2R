@@ -70,13 +70,15 @@ def merge_args(cfg: dict, args: argparse.Namespace) -> dict:
     return cfg
 
 
-def run(cfg: dict, cfg_path: str) -> None:
+def run(cfg: dict, cfg_path: str, args: argparse.Namespace) -> None:
     run_dir = Path("runs") / datetime.now().strftime("%Y%m%d_%H%M%S")
     run_dir.mkdir(parents=True, exist_ok=True)
     copy2(cfg_path, run_dir / "config.yaml")
 
-    cfg.setdefault("debug_dir", str(run_dir / "debug"))
-    cfg.setdefault("output", str(run_dir / "output.png"))
+    if args.debug_dir is None:
+        cfg["debug_dir"] = str(run_dir / "debug")
+    if args.output is None:
+        cfg["output"] = str(run_dir / "output.png")
 
     pipe = load_pipeline(cfg)
     load_loras(pipe, cfg)
@@ -116,4 +118,4 @@ if __name__ == "__main__":
     args = parse_args()
     cfg = load_config(args.config)
     cfg = merge_args(cfg, args)
-    run(cfg, args.config)
+    run(cfg, args.config, args)
