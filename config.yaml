@@ -3,15 +3,15 @@ model:
   controlnet: "lllyasviel/control_v11p_sd15_canny"
   vae: "stabilityai/sd-vae-ft-ema"
 
-loras:
-  - model: "models/lora/more_details.safetensors"
-    scale: 1
+# loras:
+#   - model: "models/lora/more_details.safetensors"
+#     scale: 1.0
 
 prompt: |
   minimalistic modern house, white concrete,
   large glass walls, panoramic windows, elegant, photorealistic,
-  Icelandic volcanic nature, black sand beach, winding river,
-  dramatic mountains, mist, sunset lighting, no people, high detail, sharp focus, 8k
+  Icelandic nature, dramatic mountains, mist, sunset lighting, 
+  no people, high detail, sharp focus, 8k
 
 negative_prompt: |
   blurry, low quality, people, watermark, text, logo,
@@ -23,7 +23,7 @@ canny:
   low: 100
   high: 200
 controlnet_conditioning_scale: 1.0
-num_inference_steps: 20
+num_inference_steps: 60
 guidance_scale: 7.5
 input: "scetch.png"
 output: "output.png"
