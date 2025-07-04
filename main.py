@@ -93,9 +93,15 @@ def canny(image: Image.Image, low: int, high: int) -> Image.Image:
     return Image.fromarray(arr)
 
 
-def preprocess(path: str, size: int) -> Image.Image:
+from typing import Union
+
+
+def preprocess(source: Union[str, Image.Image], size: int) -> Image.Image:
     """Resize and pad an image keeping aspect ratio."""
-    img = Image.open(path).convert("RGB")
+    if isinstance(source, Image.Image):
+        img = source.convert("RGB")
+    else:
+        img = Image.open(source).convert("RGB")
     w, h = img.size
     if max(w, h) > size:
         s = size / max(w, h)
@@ -115,6 +121,39 @@ def save_debug(img: Image.Image, name: str, base: str = "debug") -> None:
     out_dir = Path(base)
     out_dir.mkdir(parents=True, exist_ok=True)
     img.save(out_dir / name)
+
+
+def generate(
+    pipe: StableDiffusionControlNetPipeline,
+    cfg: dict,
+    image: Union[str, Image.Image] | None = None,
+) -> Image.Image:
+    """Generate an image using the given pipeline and config."""
+    prompt = cfg["prompt"]
+    negative_prompt = cfg["negative_prompt"]
+    if image is None:
+        image = cfg["input"]
+
+    preprocessed = preprocess(image, cfg.get("preprocess_size", 1024))
+    save_debug(preprocessed, "preprocess.png", base=cfg.get("debug_dir", "debug"))
+
+    edge_cfg = cfg.get("canny", {})
+    low = edge_cfg.get("low", 100)
+    high = edge_cfg.get("high", 200)
+    edged = canny(preprocessed, low, high)
+    save_debug(edged, "canny.png", base=cfg.get("debug_dir", "debug"))
+
+    result = pipe(
+        prompt=prompt,
+        negative_prompt=negative_prompt,
+        image=edged,
+        controlnet_conditioning_scale=cfg.get("controlnet_conditioning_scale", 1.0),
+        num_inference_steps=cfg.get("num_inference_steps", 20),
+        guidance_scale=cfg.get("guidance_scale", 7.5),
+    ).images[0]
+
+    result.save(cfg.get("output", "output.png"))
+    return result
 
 
 def main() -> None:
@@ -142,28 +181,7 @@ def main() -> None:
         print(f"Free GPU VRAM: {free_mem} GB")
         pipe.enable_sequential_cpu_offload()
 
-    prompt = cfg["prompt"]
-    negative_prompt = cfg["negative_prompt"]
-
-    preprocessed = preprocess(cfg["input"], cfg.get("preprocess_size", 1024))
-    save_debug(preprocessed, "preprocess.png", base=cfg.get("debug_dir", "debug"))
-
-    edge_cfg = cfg.get("canny", {})
-    low = edge_cfg.get("low", 100)
-    high = edge_cfg.get("high", 200)
-    edged = canny(preprocessed, low, high)
-    save_debug(edged, "canny.png", base=cfg.get("debug_dir", "debug"))
-
-    result = pipe(
-        prompt=prompt,
-        negative_prompt=negative_prompt,
-        image=edged,
-        controlnet_conditioning_scale=cfg.get("controlnet_conditioning_scale", 1.0),
-        num_inference_steps=cfg.get("num_inference_steps", 20),
-        guidance_scale=cfg.get("guidance_scale", 7.5),
-    ).images[0]
-
-    result.save(cfg.get("output", "output.png"))
+    generate(pipe, cfg)
 
 
 if __name__ == "__main__":

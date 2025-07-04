@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Sketch Renderer</title>
+</head>
+<body>
+    <h1>Sketch to Renderer</h1>
+    <form action="/generate" method="post" enctype="multipart/form-data">
+        <div>
+            <label for="image">Sketch image:</label>
+            <input type="file" id="image" name="image">
+        </div>
+        <div>
+            <label for="prompt">Prompt:</label><br>
+            <textarea name="prompt" id="prompt" rows="3" cols="60">{{ cfg.prompt }}</textarea>
+        </div>
+        <div>
+            <label for="negative_prompt">Negative prompt:</label><br>
+            <textarea name="negative_prompt" id="negative_prompt" rows="3" cols="60">{{ cfg.negative_prompt }}</textarea>
+        </div>
+        <div>
+            <label for="steps">Steps:</label>
+            <input type="number" id="steps" name="steps" value="{{ cfg.num_inference_steps }}">
+        </div>
+        <div>
+            <label for="guidance">Guidance scale:</label>
+            <input type="number" step="0.1" id="guidance" name="guidance" value="{{ cfg.guidance_scale }}">
+        </div>
+        <div>
+            <label for="canny_low">Canny low:</label>
+            <input type="number" id="canny_low" name="canny_low" value="{{ cfg.canny.low }}">
+        </div>
+        <div>
+            <label for="canny_high">Canny high:</label>
+            <input type="number" id="canny_high" name="canny_high" value="{{ cfg.canny.high }}">
+        </div>
+        <div>
+            <label for="scale">ControlNet scale:</label>
+            <input type="number" step="0.1" id="scale" name="scale" value="{{ cfg.controlnet_conditioning_scale }}">
+        </div>
+        <div>
+            <button type="submit">Generate</button>
+        </div>
+    </form>
+</body>
+</html>
