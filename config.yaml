@@ -3,9 +3,9 @@ model:
   controlnet: "lllyasviel/control_v11p_sd15_canny"
   vae: "stabilityai/sd-vae-ft-ema"
 
-loras:
-  - model: "models/lora/more_details.safetensors"
-    scale: 1
+# loras:
+#   - model: "models/lora/more_details.safetensors"
+#     scale: 1
 
 prompt: |
   minimalistic modern house, white concrete,
@@ -25,6 +25,6 @@ canny:
 controlnet_conditioning_scale: 1.0
 num_inference_steps: 20
 guidance_scale: 7.5
-input: "scetch.png"
+input: "input.png"
 output: "output.png"
 debug_dir: "debug"
