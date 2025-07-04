@@ -46,9 +46,46 @@
 
 Все параметры генерации задаются в файле `config.yaml`.
 
+### Конфигурация
+Ниже приведены основные параметры `config.yaml` и соответствующие ключи CLI.
+
+| Ключ | Тип | Пояснение | CLI параметр |
+|------|-----|-----------|--------------|
+| `model.base` | str | Базовая модель Stable Diffusion | — |
+| `model.controlnet` | str | Модель ControlNet | — |
+| `model.vae` | str | Используемый VAE | — |
+| `loras` | list | Список LoRA‑адаптеров | — |
+| `prompt` | str | Текст подсказки | `--prompt` |
+| `negative_prompt` | str | Негативная подсказка | `--negative-prompt` |
+| `preprocess_size` | int | Размер входного изображения | `--preprocess-size` |
+| `canny.low` | int | Нижний порог Canny | `--canny-low` |
+| `canny.high` | int | Верхний порог Canny | `--canny-high` |
+| `controlnet_conditioning_scale` | float | Сила ControlNet | `--controlnet-scale` |
+| `num_inference_steps` | int | Число итераций диффузии | `--steps` |
+| `guidance_scale` | float | CFG scale | `--guidance` |
+| `input` | str | Путь к исходному эскизу | `--input` |
+| `output` | str | Имя итогового файла | `--output` |
+| `debug_dir` | str | Каталог для отладочных изображений | `--debug-dir` |
+
 ## Запуск
+Для просмотра всех параметров вызовите:
 ```cmd
-python main.py
+python generate.py --help
 ```
 
-Файл `config.yaml` содержит все настройки генерации.
+Базовый пример:
+```cmd
+python generate.py --input scetch.png --prompt "<ваш промпт>"
+```
+
+Можно переопределить любой параметр конфигурации через CLI:
+```cmd
+python generate.py --config config.yaml --input input.png \
+    --prompt "modern house" --output result.png
+```
+
+При запуске без явного указания путей `--output` и `--debug-dir` скрипт
+создаст каталог `runs/YYYYMMDD_HHMMSS`, где будут сохранены сгенерированное
+изображение (`output.png`) и все отладочные изображения.
+
+CLI использует `config.yaml` как источник значений по умолчанию.
