@@ -46,9 +46,37 @@
 
 Все параметры генерации задаются в файле `config.yaml`.
 
+### Конфигурация
+Основные ключи:
+- `model.base` — модель Stable Diffusion
+- `model.controlnet` — модель ControlNet
+- `model.vae` — используемый VAE
+- `loras` — список подключаемых LoRA‑адаптеров
+- `prompt` и `negative_prompt` — тексты подсказок
+- `preprocess_size` — размер входного изображения
+- `canny.low` и `canny.high` — пороги детектора Canny
+- `controlnet_conditioning_scale` — сила ControlNet
+- `num_inference_steps` — число итераций диффузии
+- `guidance_scale` — CFG scale
+- `input` — путь к исходному эскизу
+- `output` — имя итогового файла
+- `debug_dir` — каталог для отладочных изображений
+
 ## Запуск
+Для просмотра всех параметров вызовите:
 ```cmd
-python main.py
+python generate.py --help
 ```
 
-Файл `config.yaml` содержит все настройки генерации.
+Базовый пример:
+```cmd
+python generate.py --input scetch.png --prompt "<ваш промпт>"
+```
+
+Можно переопределить любой параметр конфигурации через CLI:
+```cmd
+python generate.py --config config.yaml --input input.png \
+    --prompt "modern house" --output result.png
+```
+
+CLI использует `config.yaml` как источник значений по умолчанию.
