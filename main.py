@@ -44,6 +44,27 @@ def load_pipeline(cfg: dict) -> StableDiffusionControlNetPipeline:
     return pipe
 
 
+def load_loras(pipe: StableDiffusionControlNetPipeline, cfg: dict) -> None:
+    """Load and optionally fuse LoRA adapters."""
+    loras = cfg.get("loras")
+    if not loras:
+        return
+
+    if isinstance(loras, dict):
+        loras = [loras]
+
+    for idx, lora_cfg in enumerate(loras):
+        model = lora_cfg.get("model")
+        if model is None:
+            continue
+        weight_name = lora_cfg.get("weight_name")
+        adapter_name = lora_cfg.get("adapter_name", f"lora_{idx}")
+        pipe.load_lora_weights(model, weight_name=weight_name, adapter_name=adapter_name)
+        scale = lora_cfg.get("scale")
+        if scale is not None:
+            pipe.fuse_lora(lora_scale=scale, adapter_names=[adapter_name])
+
+
 def get_free_gpu_memory_gb(device: int = 0) -> float:
     """Return available GPU memory in gigabytes."""
     if not torch.cuda.is_available():
@@ -107,6 +128,7 @@ def main() -> None:
     cfg["output"] = str(run_dir / "output.png")
 
     pipe = load_pipeline(cfg)
+    load_loras(pipe, cfg)
     size = sizeof_pipe(pipe)
     free_mem = get_free_gpu_memory_gb()
     print(f"VRAM needed: {size} GB")

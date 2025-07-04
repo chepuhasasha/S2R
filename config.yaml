@@ -3,6 +3,15 @@ model:
   controlnet: "lllyasviel/control_v11p_sd15_canny"
   vae: "stabilityai/sd-vae-ft-ema"
 
+# LoRA adapters can be specified as a list. Each entry must have a
+# `model` key pointing to the LoRA weights. Optional keys are
+# `weight_name` for custom weight files and `scale` to control the
+# strength.
+loras:
+  - model: "path/to/lora"
+    weight_name: "pytorch_lora_weights.safetensors"
+    scale: 1.0
+
 prompt: |
   minimalistic modern house, white concrete,
   large glass walls, panoramic windows, elegant, photorealistic,
