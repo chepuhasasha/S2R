@@ -38,3 +38,18 @@ def save_debug(img: Image.Image, name: str, base: str | Path) -> None:
     out_dir = Path(base)
     out_dir.mkdir(parents=True, exist_ok=True)
     img.save(out_dir / name)
+
+
+def save_image_fast(
+    img: Image.Image,
+    path: str | Path,
+    compress_level: int = 1,
+) -> None:
+    """Save final image using OpenCV for faster compression."""
+    out_path = Path(path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    arr = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+    if out_path.suffix.lower() in {".jpg", ".jpeg"}:
+        cv2.imwrite(str(out_path), arr, [cv2.IMWRITE_JPEG_QUALITY, 95])
+    else:
+        cv2.imwrite(str(out_path), arr, [cv2.IMWRITE_PNG_COMPRESSION, compress_level])

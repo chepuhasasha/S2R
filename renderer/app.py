@@ -12,7 +12,7 @@ from .pipeline import (
     get_free_gpu_memory_gb,
     sizeof_pipe,
 )
-from .utils import preprocess, canny, save_debug
+from .utils import preprocess, canny, save_debug, save_image_fast
 
 
 def generate(cfg: dict) -> None:
@@ -55,7 +55,7 @@ def generate(cfg: dict) -> None:
         guidance_scale=cfg.get("guidance_scale", 7.5),
     ).images[0]
 
-    result.save(cfg.get("output", "output.png"))
+    save_image_fast(result, cfg.get("output", "output.png"))
 
 
 def main() -> None:
