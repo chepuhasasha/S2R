@@ -47,20 +47,25 @@
 Все параметры генерации задаются в файле `config.yaml`.
 
 ### Конфигурация
-Основные ключи:
-- `model.base` — модель Stable Diffusion
-- `model.controlnet` — модель ControlNet
-- `model.vae` — используемый VAE
-- `loras` — список подключаемых LoRA‑адаптеров
-- `prompt` и `negative_prompt` — тексты подсказок
-- `preprocess_size` — размер входного изображения
-- `canny.low` и `canny.high` — пороги детектора Canny
-- `controlnet_conditioning_scale` — сила ControlNet
-- `num_inference_steps` — число итераций диффузии
-- `guidance_scale` — CFG scale
-- `input` — путь к исходному эскизу
-- `output` — имя итогового файла
-- `debug_dir` — каталог для отладочных изображений
+Ниже приведены основные параметры `config.yaml` и соответствующие ключи CLI.
+
+| Ключ | Тип | Пояснение | CLI параметр |
+|------|-----|-----------|--------------|
+| `model.base` | str | Базовая модель Stable Diffusion | — |
+| `model.controlnet` | str | Модель ControlNet | — |
+| `model.vae` | str | Используемый VAE | — |
+| `loras` | list | Список LoRA‑адаптеров | — |
+| `prompt` | str | Текст подсказки | `--prompt` |
+| `negative_prompt` | str | Негативная подсказка | `--negative-prompt` |
+| `preprocess_size` | int | Размер входного изображения | `--preprocess-size` |
+| `canny.low` | int | Нижний порог Canny | `--canny-low` |
+| `canny.high` | int | Верхний порог Canny | `--canny-high` |
+| `controlnet_conditioning_scale` | float | Сила ControlNet | `--controlnet-scale` |
+| `num_inference_steps` | int | Число итераций диффузии | `--steps` |
+| `guidance_scale` | float | CFG scale | `--guidance` |
+| `input` | str | Путь к исходному эскизу | `--input` |
+| `output` | str | Имя итогового файла | `--output` |
+| `debug_dir` | str | Каталог для отладочных изображений | `--debug-dir` |
 
 ## Запуск
 Для просмотра всех параметров вызовите:
