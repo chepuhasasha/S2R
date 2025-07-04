@@ -1,0 +1,26 @@
+model:
+  base: "SG161222/Realistic_Vision_V6.0_B1_noVAE"
+  controlnet: "lllyasviel/control_v11p_sd15_canny"
+  vae: "stabilityai/sd-vae-ft-ema"
+
+prompt: |
+  minimalistic modern house, white concrete,
+  large glass walls, panoramic windows, elegant, photorealistic,
+  Icelandic volcanic nature, black sand beach, winding river,
+  dramatic mountains, mist, sunset lighting, no people, high detail, sharp focus, 8k
+
+negative_prompt: |
+  blurry, low quality, people, watermark, text, logo,
+  distortion, cartoon, surreal, painting, unrealistic, overexposed,
+  underexposed, bad anatomy, artifacts
+
+preprocess_size: 1024
+canny:
+  low: 100
+  high: 200
+controlnet_conditioning_scale: 1.0
+num_inference_steps: 20
+guidance_scale: 7.5
+input: "scetch.png"
+output: "output.png"
+debug_dir: "debug"

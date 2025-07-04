@@ -1,6 +1,7 @@
 """Generate an image from a sketch using Stable Diffusion ControlNet."""
 
 from pathlib import Path
+import yaml
 
 import cv2
 import numpy as np
@@ -14,19 +15,25 @@ from diffusers import (
 )
 
 
-def load_pipeline() -> StableDiffusionControlNetPipeline:
+def load_config(path: str = "config.yaml") -> dict:
+    """Load generation settings from a YAML file."""
+    with open(path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+def load_pipeline(cfg: dict) -> StableDiffusionControlNetPipeline:
     """Load Stable Diffusion pipeline with ControlNet."""
     controlnet = ControlNetModel.from_pretrained(
-        "lllyasviel/control_v11p_sd15_canny", torch_dtype=torch.float16
+        cfg["model"]["controlnet"], torch_dtype=torch.float16
     )
     pipe = StableDiffusionControlNetPipeline.from_pretrained(
-        "SG161222/Realistic_Vision_V6.0_B1_noVAE",
+        cfg["model"]["base"],
         controlnet=controlnet,
         safety_checker=None,
         torch_dtype=torch.float16,
     )
     vae = AutoencoderKL.from_pretrained(
-        "stabilityai/sd-vae-ft-ema", torch_dtype=torch.float16
+        cfg["model"]["vae"], torch_dtype=torch.float16
     )
     pipe.vae = vae
 
@@ -88,7 +95,8 @@ def save_debug(img: Image.Image, name: str, base: str = "debug") -> None:
 
 
 def main() -> None:
-    pipe = load_pipeline()
+    cfg = load_config()
+    pipe = load_pipeline(cfg)
     size = sizeof_pipe(pipe)
     free_mem = get_free_gpu_memory_gb()
     print(f"VRAM needed: {size} GB")
@@ -102,34 +110,28 @@ def main() -> None:
         print(f"Free GPU VRAM: {free_mem} GB")
         pipe.enable_sequential_cpu_offload()
 
-    prompt = (
-        "minimalistic modern house, white concrete,"
-        "large glass walls, panoramic windows, elegant, photorealistic,"
-        "Icelandic volcanic nature, black sand beach, winding river,"
-        "dramatic mountains, mist, sunset lighting, no people, high detail, sharp focus, 8k"
-    )
-    negative_prompt = (
-        "blurry, low quality, people, watermark, text, logo,"
-        "distortion, cartoon, surreal, painting, unrealistic, overexposed,"
-        "underexposed, bad anatomy, artifacts"
-    )
+    prompt = cfg["prompt"]
+    negative_prompt = cfg["negative_prompt"]
 
-    preprocessed = preprocess("scetch.png", 1024)
-    save_debug(preprocessed, "preprocess.png")
+    preprocessed = preprocess(cfg["input"], cfg.get("preprocess_size", 1024))
+    save_debug(preprocessed, "preprocess.png", base=cfg.get("debug_dir", "debug"))
 
-    edged = canny(preprocessed, 100, 200)
-    save_debug(edged, "canny.png")
+    edge_cfg = cfg.get("canny", {})
+    low = edge_cfg.get("low", 100)
+    high = edge_cfg.get("high", 200)
+    edged = canny(preprocessed, low, high)
+    save_debug(edged, "canny.png", base=cfg.get("debug_dir", "debug"))
 
     result = pipe(
         prompt=prompt,
         negative_prompt=negative_prompt,
         image=edged,
-        controlnet_conditioning_scale=1.0,
-        num_inference_steps=20,
-        guidance_scale=7.5,
+        controlnet_conditioning_scale=cfg.get("controlnet_conditioning_scale", 1.0),
+        num_inference_steps=cfg.get("num_inference_steps", 20),
+        guidance_scale=cfg.get("guidance_scale", 7.5),
     ).images[0]
 
-    result.save("output.png")
+    result.save(cfg.get("output", "output.png"))
 
 
 if __name__ == "__main__":

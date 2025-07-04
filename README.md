@@ -42,7 +42,11 @@
    ```
 6. Скачайте модели `SG161222/Realistic_Vision_V6.0_B1_noVAE`, `lllyasviel/control_v11p_sd15_canny` и `stabilityai/sd-vae-ft-ema` из Hugging Face и разместите их в каталоге `models/`.
 
+Все параметры генерации задаются в файле `config.yaml`.
+
 ## Запуск
 ```cmd
 python main.py
 ```
+
+Файл `config.yaml` содержит все настройки генерации.
