@@ -25,7 +25,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--preprocess-size", type=int, help="Preprocess image size")
     parser.add_argument("--canny-low", type=int, help="Canny low threshold")
     parser.add_argument("--canny-high", type=int, help="Canny high threshold")
-    parser.add_argument("--debug-dir", help="Directory for debug images")
     return parser.parse_args()
 
 
@@ -53,8 +52,6 @@ def merge_args(cfg: dict, args: argparse.Namespace) -> dict:
         if args.canny_high is not None:
             canny_cfg["high"] = args.canny_high
         cfg["canny"] = canny_cfg
-    if args.debug_dir:
-        cfg["debug_dir"] = args.debug_dir
     return cfg
 
 

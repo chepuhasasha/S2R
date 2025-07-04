@@ -82,7 +82,6 @@ huggingface-cli download stabilityai/sd-vae-ft-ema --local-dir models/sd-vae-ft-
 | `guidance_scale` | float | CFG scale | `--guidance` |
 | `input` | str | Путь к исходному эскизу | `--input` |
 | `output` | str | Имя итогового файла | `--output` |
-| `debug_dir` | str | Каталог для отладочных изображений | `--debug-dir` |
 
 ## Запуск
 Для просмотра всех параметров вызовите:
@@ -101,7 +100,7 @@ python generate.py --config config.yaml --input input.png \
     --prompt "modern house" --output result.png
 ```
 
-При запуске без явного указания путей `--output` и `--debug-dir` скрипт
+При запуске без явного указания пути `--output` скрипт
 создаст каталог `runs/YYYYMMDD_HHMMSS`, где будут сохранены сгенерированное
 изображение (`output.png`) и все отладочные изображения.
 

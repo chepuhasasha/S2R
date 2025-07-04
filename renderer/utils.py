@@ -33,8 +33,8 @@ def preprocess(path: str | Path, size: int) -> Image.Image:
     return ImageOps.autocontrast(img)
 
 
-def save_debug(img: Image.Image, name: str, base: str = "debug") -> None:
-    """Save intermediate image if debugging is enabled."""
+def save_debug(img: Image.Image, name: str, base: str | Path) -> None:
+    """Save intermediate image next to the output."""
     out_dir = Path(base)
     out_dir.mkdir(parents=True, exist_ok=True)
     img.save(out_dir / name)

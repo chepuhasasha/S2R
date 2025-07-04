@@ -21,8 +21,8 @@ def generate(cfg: dict) -> None:
     run_dir.mkdir(parents=True, exist_ok=True)
     copy2("config.yaml", run_dir / "config.yaml")
 
-    cfg.setdefault("debug_dir", str(run_dir / "debug"))
     cfg.setdefault("output", str(run_dir / "output.png"))
+    output_dir = Path(cfg["output"]).parent
 
     pipe = load_pipeline(cfg)
     load_loras(pipe, cfg)
@@ -40,11 +40,11 @@ def generate(cfg: dict) -> None:
         pipe.enable_sequential_cpu_offload()
 
     preprocessed = preprocess(cfg["input"], cfg.get("preprocess_size", 1024))
-    save_debug(preprocessed, "preprocess.png", base=cfg.get("debug_dir"))
+    save_debug(preprocessed, "preprocess.png", base=output_dir)
 
     edge_cfg = cfg.get("canny", {})
     edged = canny(preprocessed, edge_cfg.get("low", 100), edge_cfg.get("high", 200))
-    save_debug(edged, "canny.png", base=cfg.get("debug_dir"))
+    save_debug(edged, "canny.png", base=output_dir)
 
     result = pipe(
         prompt=cfg["prompt"],

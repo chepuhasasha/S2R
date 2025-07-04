@@ -26,4 +26,3 @@ controlnet_conditioning_scale: 0.9
 num_inference_steps: 40
 guidance_scale: 7.5
 input: "input.png"
-debug_dir: "debug"
