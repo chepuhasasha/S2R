@@ -1,6 +1,8 @@
 """Generate an image from a sketch using Stable Diffusion ControlNet."""
 
 from pathlib import Path
+from datetime import datetime
+from shutil import copy2
 import yaml
 
 import cv2
@@ -96,6 +98,14 @@ def save_debug(img: Image.Image, name: str, base: str = "debug") -> None:
 
 def main() -> None:
     cfg = load_config()
+
+    run_dir = Path("runs") / datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_dir.mkdir(parents=True, exist_ok=True)
+    copy2("config.yaml", run_dir / "config.yaml")
+
+    cfg["debug_dir"] = str(run_dir / "debug")
+    cfg["output"] = str(run_dir / "output.png")
+
     pipe = load_pipeline(cfg)
     size = sizeof_pipe(pipe)
     free_mem = get_free_gpu_memory_gb()
