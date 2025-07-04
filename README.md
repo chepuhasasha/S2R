@@ -1,9 +1,4 @@
-# Renderer
-
-Этот проект преобразует эскиз в фотореалистичный рендер с помощью Stable Diffusion v1.5 и ControlNet.
-Используется режим text-to-image: исходное изображение нужно только для получения карты Canny,
-которую затем подаём в ControlNet.
-Оптимизацию внимания обеспечивают встроенные функции PyTorch (Flash Attention и SDPA).
+# Scetch to Renderer
 
 ## Подготовка окружения (Windows 11, Python 3.10+, CUDA 12.8)
 
@@ -45,12 +40,9 @@
    pip check
    pip freeze > requirements.lock
    ```
-6. Скачайте модели `stable-diffusion-v1-5`, `control_v11p_sd15_canny` и `sd-vae-ft-mse` из Hugging Face и разместите их в каталоге `models/`.
+6. Скачайте модели `SG161222/Realistic_Vision_V6.0_B1_noVAE`, `lllyasviel/control_v11p_sd15_canny` и `stabilityai/sd-vae-ft-ema` из Hugging Face и разместите их в каталоге `models/`.
 
 ## Запуск
 ```cmd
-python main.py --config config.yaml
+python main.py
 ```
-Программа сама создаёт папку `runs/20240101_120000/` (имя содержит время запуска),
-куда помещаются все дебаг-картинки и финальный рендер `result.png`. Входной скетч
-используется только для получения карты Canny.

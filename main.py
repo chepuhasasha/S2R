@@ -1,28 +1,23 @@
+import torch, numpy as np
 from pathlib import Path
-from datetime import datetime
-import argparse, shutil
-import torch, cv2, numpy as np
 from PIL import Image, ImageOps
-import yaml
+import cv2
+from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, AutoencoderKL, UniPCMultistepScheduler
 
-from diffusers import (
-    StableDiffusionControlNetPipeline,
-    ControlNetModel,
-    EulerAncestralDiscreteScheduler,
-    AutoencoderKL,
-)
-
-def load_config(path: str) -> dict:
-    """Load YAML configuration."""
-    with open(path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
-
-def create_output_dir(base: str = "runs") -> Path:
-    """Return a unique directory for all output images."""
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_dir = Path(base) / ts
-    out_dir.mkdir(parents=True, exist_ok=False)
-    return out_dir
+def load_pipe():
+  controlnet = ControlNetModel.from_pretrained(
+      "lllyasviel/control_v11p_sd15_canny", torch_dtype=torch.float16
+  )
+  pipe = StableDiffusionControlNetPipeline.from_pretrained(
+      "SG161222/Realistic_Vision_V6.0_B1_noVAE",
+      controlnet=controlnet, 
+      safety_checker=None, 
+      torch_dtype=torch.float16
+  )
+  vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-ema", torch_dtype=torch.float16)
+  pipe.vae = vae
+  pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)       # более стабильный scheduler
+  return pipe
 
 def get_free_gpu_memory_gb(device: int = 0) -> float:
     if not torch.cuda.is_available():
@@ -38,11 +33,13 @@ def sizeof_pipe(pipe) -> float:
     total_params = sum(p.numel() for m in modules for p in m.parameters())
     return total_params * 2 / (1024 ** 3)  # FP16 = 2 bytes per parameter
 
-def dbg(img: Image.Image, name: str, out_dir: Path):
-    """Save intermediate image to the output directory."""
-    out_dir.mkdir(parents=True, exist_ok=True)
-    img.save(out_dir / name)
-
+def canny(image: Image.Image, low: int, high: int) -> Image.Image:
+    image = np.array(image)
+    image = cv2.Canny(image, low, high)
+    image = image[:, :, None]
+    image = np.concatenate([image, image, image], axis=2)
+    return Image.fromarray(image)
+  
 def preprocess(path: str, size: int) -> Image.Image:
     img = Image.open(path).convert("RGB")
     w, h = img.size
@@ -59,86 +56,47 @@ def preprocess(path: str, size: int) -> Image.Image:
     img = ImageOps.autocontrast(img)
     return img
 
-def canny(image: Image.Image, low: int, high: int) -> Image.Image:
-    image = np.array(image)
-    image = cv2.Canny(image, low, high)
-    image = image[:, :, None]
-    image = np.concatenate([image, image, image], axis=2)
-    return Image.fromarray(image)
-    
-def load_pipeline(cfg, dtype=torch.float16):
-    """Create Stable Diffusion 1.5 pipeline with ControlNet."""
-    controlnet = ControlNetModel.from_pretrained(
-        cfg["controlnet_path"], torch_dtype=dtype, variant="fp16"
-    )
-    vae = None
-    if cfg.get("vae_path"):
-        vae = AutoencoderKL.from_pretrained(cfg["vae_path"], torch_dtype=dtype)
+def dbg(img: Image.Image, name: str, base: str):
+    out_dir = Path(base)
+    out_dir.mkdir(parents=True, exist_ok=False)
+    img.save(out_dir / name)
+  
+pipe = load_pipe()
+size = sizeof_pipe(pipe) 
+free_mem = get_free_gpu_memory_gb()
+print(f"VRAM neaded: {size} GB")
+print(f"Free GPU VRAM: {free_mem} GB")
 
-    pipe = StableDiffusionControlNetPipeline.from_pretrained(
-        cfg["model_path"],
-        controlnet=controlnet,
-        vae=vae,
-        torch_dtype=dtype,
-    )
-    pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
-    pipe.enable_attention_slicing()
-    pipe.vae.enable_tiling()
+if free_mem > size:
+    pipe.to('cuda')
+else:
+    print(f"Not enough memory: {size - free_mem} GB. Enable sequential cpu offload...")
+    print(f"VRAM neaded: {size} GB")
+    print(f"Free GPU VRAM: {free_mem} GB")
+    pipe.enable_sequential_cpu_offload()
 
-    torch.backends.cuda.matmul.allow_tf32 = True
-    torch.backends.cudnn.benchmark = True
-    if hasattr(torch.backends.cuda, "enable_flash_sdp"):
-        torch.backends.cuda.enable_flash_sdp(True)
-    if hasattr(torch.backends.cuda, "enable_mem_efficient_sdp"):
-        torch.backends.cuda.enable_mem_efficient_sdp(True)
+prompt = (
+    "minimalistic modern house, white concrete,"
+    "large glass walls, panoramic windows, elegant, photorealistic,"
+    "Icelandic volcanic nature, black sand beach, winding river,"
+    "dramatic mountains, mist, sunset lighting, no people, high detail, sharp focus, 8k"
+)
+negative_prompt = (
+    "blurry, low quality, people, watermark, text, logo,"
+    "distortion, cartoon, surreal, painting, unrealistic, overexposed,"
+    "underexposed, bad anatomy, artifacts"
+)
+preprocessed = preprocess("scetch.png", 1024)
+# dbg(preprocess, 'preprocess.png', 'debug')
+image=canny(preprocessed, 100, 200)
+# dbg(preprocess, 'canny.png', 'debug')
+result = pipe(
+  prompt=prompt,
+  negative_prompt=negative_prompt, 
+  image=image, 
+  controlnet_conditioning_scale=1.0, 
+  num_inference_steps=20,
+  guidance_scale=7.5
+).images[0]
 
-    return pipe
-
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument(
-        "--config",
-        default="config.yaml",
-        help="путь к YAML конфигурации",
-    )
-    args = ap.parse_args()
-
-    cfg = load_config(args.config)
-
-    out_dir = create_output_dir()
-    shutil.copy(args.config, out_dir / "config.yaml")
-
-    if not torch.cuda.is_available():
-        raise SystemError(
-            "CUDA device not found. Install appropriate NVIDIA drivers and CUDA 12.1."
-        )
-
-    init_img  = preprocess(cfg["input"], cfg["size"])
-    dbg(init_img,  "preprocessed.png", out_dir)
-
-    edge_img  = canny(init_img, cfg["canny_low"], cfg["canny_high"])
-    dbg(edge_img, "canny.png", out_dir)
-
-    pipe = load_pipeline(cfg)
-    size = sizeof_pipe(pipe) 
-    free_mem = get_free_gpu_memory_gb()
-
-    if free_mem > size:
-        pipe.to('cuda')
-    else:
-        print(f"Not enough memory: {size - free_mem} GB. Enable sequential cpu offload...")
-        print(f"VRAM neaded: {size} GB")
-        print(f"Free GPU VRAM: {free_mem} GB")
-        pipe.enable_sequential_cpu_offload()
-    result = pipe(
-        prompt=cfg["prompt"],
-        image=init_img,
-        control_image=edge_img,
-        num_inference_steps=cfg["steps"],
-        guidance_scale=cfg["guidance"],
-        controlnet_conditioning_scale=cfg["conditioning"],
-        negative_prompt=cfg["negative_prompt"]
-    ).images[0]
-    result.save(out_dir / "result.png")
-if __name__ == "__main__":
-    main()
+result.save("output.png")
