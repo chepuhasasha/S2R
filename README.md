@@ -1,4 +1,8 @@
-# Scetch to Renderer
+# Sketch to Renderer
+
+Небольшой проект для генерации финального изображения по эскизу при помощи
+Stable Diffusion ControlNet. Исходный код организован в пакете `renderer`,
+а скрипт `generate.py` предоставляет CLI для запуска.
 
 ## Подготовка окружения (Windows 11, Python 3.10+, CUDA 12.8)
 
@@ -75,7 +79,7 @@ python generate.py --help
 
 Базовый пример:
 ```cmd
-python generate.py --input scetch.png --prompt "<ваш промпт>"
+python generate.py --input sketch.png --prompt "<ваш промпт>"
 ```
 
 Можно переопределить любой параметр конфигурации через CLI:

@@ -1,24 +1,12 @@
 #!/usr/bin/env python3
 """Simple CLI for image generation using config defaults."""
-
 import argparse
-from pathlib import Path
-from datetime import datetime
-from shutil import copy2
 
-from main import (
-    load_config,
-    load_pipeline,
-    load_loras,
-    get_free_gpu_memory_gb,
-    sizeof_pipe,
-    preprocess,
-    canny,
-    save_debug,
-)
+from renderer.config import load_config
+from renderer.app import generate
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate image from a sketch using ControlNet"
     )
@@ -70,52 +58,12 @@ def merge_args(cfg: dict, args: argparse.Namespace) -> dict:
     return cfg
 
 
-def run(cfg: dict, cfg_path: str, args: argparse.Namespace) -> None:
-    run_dir = Path("runs") / datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir.mkdir(parents=True, exist_ok=True)
-    copy2(cfg_path, run_dir / "config.yaml")
-
-    if args.debug_dir is None:
-        cfg["debug_dir"] = str(run_dir / "debug")
-    if args.output is None:
-        cfg["output"] = str(run_dir / "output.png")
-
-    pipe = load_pipeline(cfg)
-    load_loras(pipe, cfg)
-    size = sizeof_pipe(pipe)
-    free_mem = get_free_gpu_memory_gb()
-    print(f"VRAM needed: {size} GB")
-    print(f"Free GPU VRAM: {free_mem} GB")
-
-    if free_mem > size:
-        pipe.to("cuda")
-    else:
-        print(
-            f"Not enough memory: {size - free_mem} GB. Enable sequential cpu offload..."
-        )
-        pipe.enable_sequential_cpu_offload()
-
-    preprocessed = preprocess(cfg["input"], cfg.get("preprocess_size", 1024))
-    save_debug(preprocessed, "preprocess.png", base=cfg.get("debug_dir", "debug"))
-
-    edge_cfg = cfg.get("canny", {})
-    edged = canny(preprocessed, edge_cfg.get("low", 100), edge_cfg.get("high", 200))
-    save_debug(edged, "canny.png", base=cfg.get("debug_dir", "debug"))
-
-    result = pipe(
-        prompt=cfg["prompt"],
-        negative_prompt=cfg["negative_prompt"],
-        image=edged,
-        controlnet_conditioning_scale=cfg.get("controlnet_conditioning_scale", 1.0),
-        num_inference_steps=cfg.get("num_inference_steps", 20),
-        guidance_scale=cfg.get("guidance_scale", 7.5),
-    ).images[0]
-
-    result.save(cfg.get("output", "output.png"))
-
-
-if __name__ == "__main__":
+def main() -> None:
     args = parse_args()
     cfg = load_config(args.config)
     cfg = merge_args(cfg, args)
-    run(cfg, args.config, args)
+    generate(cfg)
+
+
+if __name__ == "__main__":
+    main()
